@@ -1,0 +1,242 @@
+NAME: How To/Tutorial: Installeer een tweaked FTP server (Debian)
+SCOPE: Een FTP server biedt de mogelijkheid aan gebruikers om eenvoudig
+	   data te transfereren van en naar een netwerklocatie. Echter, FTP
+	   lokt vaak inbrekers naar een netwerk, dus heeft onze FTP server
+	   bepaalde eisen:
+	   - Luistert op poort 2121 ipv 21.
+	   - Start niet op met het systeem.
+	   - Naast de admin, mogen ook gebruikers van groep ftpadm de
+	     server starten en stoppen.
+	   - Paul is een van onze FTP beheerders.
+	   - In runlevel 2 wordt de server niet mee opgestart, wanneer er naar runlevel 5 wordt overgeschakeld wel.
+AUTHOR: Bram Beirens, r0455929, 2TI1
+FIRST WRITTEN: 24-10-2014
+LAST CHANGE: $Id: opdracht_tweaked_FTP_server_opzetten_debian.txt,v 1.0 2014-10-30 16:16 bbeirens Exp $
+
+*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
+* Installatie van de FTP server *
+*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
+
+HINT : We gebruiken ProFTPd FTP-Server omwille van zijn simpele installatie en configuratie.
+	   Zorg ervoor dat u als root bent ingelogd.
+
+0. Installatie van ProFTPd:
+
+	aptitude install proftpd
+
+	Tijdens de installatie zal gevraagd worden of de FTP als zelfstandige server (standalone) of als een service van inetd moet werken.
+	Kies voor 'standalone'.
+
+   Indien het pakket niet gevonden kan worden, update de packages lijst:
+	
+	aptitude update
+
+	Indien het pakket nog steeds niet geïnstalleerd kan worden, ga dan na of de correcte debian server staat ingesteld bij /etc/apt/sources.list.
+
+1. De configuratie aanpassen: 
+
+   Om de configuratie aan te passen bewerken we het bestand /etc/proftpd/proftpd.conf.
+   Dit kan o.a. met vim, nano of emacs.
+
+   nano /etc/proftpd/proftpd.conf
+
+   Hier kan je bijvoorbeeld IPv6 uitschakelen indien je dit niet gebruikt.
+   Dit doe je door middel van de volgende regel aan te passen in het configuraite bestand:
+
+   UseIPv6 off
+
+   We raden aan om de ServerName te wijzigen in uw hostname.
+
+   ServerName                      "hostnaam.com"
+
+   Indien alle gebruikers enkel hun eigen home folder mogen gebruiken, verwijden het # teken voor..:
+
+   DefaultRoot                    ~
+
+2. De configuratie toepassen:
+
+	Zorg ervoor dat de configuratie opgeslagen is.
+
+	We willen onze server herstarten zodat de configuratie gebruikt wordt.
+
+	/etc/init.d/proftpd restart
+
+	We kunnen de configuratie ook herladen met:
+
+	/etc/init.d/proftpd reload
+
+	En de server starten met:
+
+	/etc/init.d/proftpd start
+
+3. De FTP server testen:
+
+	Na het starten van de server kan je deze testen door te surfen naar
+
+	ftp://hostnaam.com || ftp://localhost
+
+	In de terminal kan je ook toegang krijgen tot je ftp server d.m.v.:
+
+	ftp hostnaam.com || ftp localhost
+
+	Je kan inloggen met je gebruikersnaam en wachtwoord.
+	De proftpd deamon leest de hosts op /etc/passwd, dat wil zeggen dat alle lokale gebruikers kunnen inloggen en gebruikers toevoegen simpelweg te doen is door systeemaccounts aan te maken.
+	Om de ftp app af te sluiten en de verbinding te verbreken gebruik je volgend commando..:
+
+	exit
+
+*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
+* Poort wijzigen naar 2121 *
+*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
+
+1. Om de poort te wijzigen moeten we dit opnieuw in de configuratie aanpassen.
+
+   nano /etc/proftpd/proftpd.conf
+
+   Bij de regel die de Port definieert, wijzig je die naar 2121.
+
+   Port                            2121
+
+   Je kan proberen de service te herstarten d.m.v.
+
+   service apache2 restart
+
+   Indien dat niet werkt is het aangewezen de computer te herstarten.
+	
+2. De FTP server testen:
+
+	Na het starten van de server kan je deze testen door te surfen naar
+
+	ftp://hostnaam.com || ftp://localhost
+
+	Of in terminal
+
+	ftp hostnaam.com || ftp localhost
+
+	Als alles correct geconfigureerd is zal je een error krijgen.
+	Ja dient namelijk de nieuwe poort te definiëren bij het verbinden:
+
+	ftp://hostnaam.com:2121 || ftp://localhost:2121
+
+	Of in terminal
+
+	ftp hostnaam.com 2121 || ftp localhost 2121
+
+	Je kan inloggen met je gebruikersnaam en wachtwoord.
+	Om de ftp app af te sluiten en de verbinding te verbreken gebruik je volgend commando:
+
+	exit
+
+*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
+* FTP service niet laten starten met het systeem *
+*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
+
+1. We zorgen ervoor dat de ProFTP deamon in geen enkele runlevel zal worden opgestart
+
+   update-rc.d -f proftpd remove
+
+*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
+* Gebruikers van groep ftpadm toegang geven tot het starten en stoppen van de FTP server *
+*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
+
+1. We maken een gebruikersgroep ftpadm aan
+
+	groupadd ftpadm
+
+2. We maken een gebruiker Paul aan omdat Paul de FTP server mag in- en uitschakelen.
+
+	Je kan de grafische tool adduser gebruiken om Paul aan te maken, of je kan met dit snel commando Paul toevoegen en aan ftpadm toevoegen:
+
+	useradd -G ftpadm paul
+
+	We willen uiteraard een wachtwoord instellen voor paul.
+	Voer onderstaand commando in en kies + bevestig het wachtwoord:
+
+	passwd paul
+
+	Ga na of de gebruiker paul aan het systeem is toegevoegd en in de groep ftpadm zit.
+
+	id paul
+
+3. We passen de sudo configuratie aan zodat de gebruikers in de groep ftpadm de ProFTP deamon mogen starten en stoppen.
+
+HINT: Sudo is een geweldig hulpmiddel om beveiligingsproblemen te vermijden.
+	  Sudo vereist gebruikers om zich te authentificeren met hun wachtwoord en alle commando's worden bijgehouden in een log.
+
+	A. Indien sudo niet geïnstalleerd is doe je dit uiteraard eerst.
+
+		apt-get install sudo
+
+	B. De sudo configuratie kunnen we aanpassen d.m.v.
+
+		visudo
+
+		Voeg de volgende lijn toe in het document.
+		Gebruikers in de groep proftpd kunnen de server starten of stopppen zonder hun wachtwoord in te geven.
+
+		%ftpadm ALL=NOPASSWD: service proftpd start, service proftpd stop, service proftpd restart
+
+		De volgende commando's zijn degene die Paul kan uitvoeren:
+
+		sudo service proftpd <start|stop|restart>
+
+		We kunnen inloggen als paul om dit te testen.
+
+		su paul
+
+	C. Telkens sudo intyppen is vermoeiend en omslachtig.
+		We kunnen het Paul eenvoudiger maken door 3 scripts aan te maken binnen /usr/bin/<ftpstart|ftpstop|ftpherstart>
+
+		#! /bin/sh
+		sudo service proftpd <start|stop|restart> $*
+
+*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
+* EXTRA: De FTP server starten wanneer naar runlevel 5 wordt gegaan, en in runlevel 2 wordt deze weer uitgeschakeld *
+*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
+
+1. We zorgen ervoor dat de ProFTP deamon opnieuw wordt ingeschakeld in multiuser mode (runlevel 2-5)
+
+   update-rc.d proftpd defaults
+
+2. We passen de links binnnen runlevel 2 handmatig aan.
+   Zoek naar het proftpd bestand.
+
+   ls /etc/rc2.d
+
+   Hernoem de S vooraan de file naar een K
+
+   mv /etc/rc2.d/S18proftpd /etc/rc2.d/K18proftpd
+
+3. We testen of de wijzigingen correct zijn toegepast.
+
+HINT: de tool chkconfig laat ons op eenvoudige wijze toe na te gaan in welke runlevels bepaalde deamons gestart worden.
+
+	A. Nagaan wat de runlevel configuratie is met chkconfig
+
+		apt-get install chkconfig
+
+		chkconfig --list proftpd
+
+	B. In de praktijk nagaan of de FTP server enkel toegankelijk is in runlevel 5
+		Schakel over naar runlevel 5
+
+		init 5
+
+		Na het veranderen van runlevel kan je de FTP server testen door te surfen naar
+
+		ftp://hostnaam.com:2121 || ftp://localhost:2121
+
+		Of in terminal
+
+		ftp hostnaam.com 2121 || ftp localhost 2121
+
+		Je kan inloggen met je gebruikersnaam en wachtwoord.
+		Om de ftp app af te sluiten en de verbinding te verbreken gebruik je volgend commando:
+
+		exit
+
+		We keren terug naar runlevel 2
+
+		init 2
+
+		We merken op dat de FTP server onbereikbaar is.
